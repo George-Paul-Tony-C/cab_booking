@@ -1,6 +1,10 @@
 // src/main/java/com/example/cab_booking/service/driver/DriverProfileService.java
 package com.example.cab_booking.service.driver;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
 import com.example.cab_booking.model.DriverProfile;
 import com.example.cab_booking.model.User;
 import com.example.cab_booking.payload.request.DriverProfileRequest;
@@ -8,10 +12,9 @@ import com.example.cab_booking.payload.response.DriverProfileResponse;
 import com.example.cab_booking.repository.DriverProfileRepository;
 import com.example.cab_booking.repository.UserRepository;
 import com.example.cab_booking.security.services.UserDetailsImpl;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -19,17 +22,21 @@ import org.springframework.stereotype.Service;
 public class DriverProfileService {
 
     private final DriverProfileRepository driverRepo;
-    private final UserRepository          userRepo;
+    private final UserRepository userRepo;
 
-    /* -------------- helpers -------------- */
+    /* ----------------- Helpers ----------------- */
 
+    /** Fetch currently authenticated user entity */
     private User currentUser() {
-        UserDetailsImpl p = (UserDetailsImpl)
-                SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return userRepo.findById(p.getId())
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof UserDetailsImpl principal)) {
+            throw new IllegalStateException("No authenticated user in context");
+        }
+        return userRepo.findById(principal.getId())
+                       .orElseThrow(() -> new IllegalStateException("User not found"));
     }
 
+    /** Map entity → response DTO */
     private static DriverProfileResponse toDto(DriverProfile d) {
         return DriverProfileResponse.builder()
                 .userId(d.getId())
@@ -45,19 +52,23 @@ public class DriverProfileService {
                 .build();
     }
 
-    /* -------------- self-service -------------- */
+    /* ----------------- Driver self-service ----------------- */
 
+    /** GET /api/driver/profile → fetch own profile */
     public DriverProfileResponse getMyProfile() {
-        return driverRepo.findById(currentUser().getId())
+        Long userId = currentUser().getId();
+
+        return driverRepo.findById(userId)
                 .map(DriverProfileService::toDto)
-                .orElseThrow(() -> new IllegalStateException("Driver profile not created"));
+                .orElseThrow(() -> new IllegalStateException("No driver profile found for user ID: " + userId));
     }
 
+    /** POST /api/driver/profile → create or update own profile */
     public DriverProfileResponse createOrUpdate(DriverProfileRequest req) {
-        User u = currentUser();
+        User user = currentUser();
 
-        DriverProfile profile = driverRepo.findById(u.getId())
-                .orElseGet(() -> DriverProfile.builder().user(u).build());
+        DriverProfile profile = driverRepo.findById(user.getId())
+                .orElse(DriverProfile.builder().user(user).build());
 
         profile.setLicenseNo(req.getLicenseNo());
         profile.setLicenseExpiry(req.getLicenseExpiry());
@@ -69,11 +80,12 @@ public class DriverProfileService {
         return toDto(profile);
     }
 
-    /* -------------- admin -------------- */
+    /* ----------------- Admin-only ----------------- */
 
+    /** GET /api/admin/drivers/{id}/profile → view driver profile by user ID */
     public DriverProfileResponse getByUserId(Long id) {
         return driverRepo.findById(id)
                 .map(DriverProfileService::toDto)
-                .orElseThrow(() -> new IllegalArgumentException("Driver profile not found"));
+                .orElseThrow(() -> new IllegalArgumentException("No driver profile found for user ID: " + id));
     }
 }
