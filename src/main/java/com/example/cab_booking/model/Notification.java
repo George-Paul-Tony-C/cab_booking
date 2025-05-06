@@ -3,13 +3,10 @@ package com.example.cab_booking.model;
 
 import java.time.LocalDateTime;
 
-import com.example.cab_booking.enums.NotificationChannel;
-import com.example.cab_booking.enums.NotificationStatus;
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,14 +28,15 @@ public class Notification {
     @ManyToOne @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(length = 1000)
+    @Column(length = 500, nullable = false)
     private String message;
 
-    @Enumerated(EnumType.STRING)
-    private NotificationChannel channel;
+    @Column(length = 10)               // "push" | "SMS" | "email"
+    private String channel;
 
+    @Builder.Default
+    private boolean readFlag = false;  // user viewed?
+
+    @CreationTimestamp
     private LocalDateTime sentAt;
-
-    @Enumerated(EnumType.STRING)
-    private NotificationStatus status;
 }
