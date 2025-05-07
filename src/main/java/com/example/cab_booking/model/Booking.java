@@ -44,4 +44,12 @@ public class Booking {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    // inside Booking.java
+    @ManyToOne @JoinColumn(name = "driver_id")
+    private User driver;                // may be null (waiting)
+
+    @ManyToOne @JoinColumn(name = "vehicle_category_id")
+    private VehicleCategory vehicleCategory;
+
 }

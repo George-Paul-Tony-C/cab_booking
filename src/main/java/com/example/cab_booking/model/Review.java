@@ -3,6 +3,8 @@ package com.example.cab_booking.model;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -16,15 +18,22 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data @NoArgsConstructor @AllArgsConstructor @Builder
-@Entity @Table(name = "reviews")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "reviews")
 public class Review {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne @JoinColumn(name = "trip_id")
-    private Trip trip;
+    /* ---------- relationships ---------- */
+
+    @ManyToOne @JoinColumn(name = "booking_id")
+    private Booking booking;          // link to completed booking
 
     @ManyToOne @JoinColumn(name = "customer_id")
     private User customer;
@@ -35,10 +44,16 @@ public class Review {
     @ManyToOne @JoinColumn(name = "vehicle_id")
     private Vehicle vehicle;
 
-    private Integer rating;                       // 1–5
+    /* ---------- payload ---------- */
+
+    @Column(nullable = false)
+    private Integer rating;           // 1–5
 
     @Column(length = 1000)
     private String reviewMsg;
 
+    /* ---------- audit ---------- */
+
+    @CreationTimestamp
     private LocalDateTime createdAt;
 }
